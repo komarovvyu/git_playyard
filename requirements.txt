@@ -1,0 +1,8 @@
+python 3.12
+
+plotly 6.0.0
+dash 2.18.2
+dash-bootstrap-components 1.7.1
+jupyterlab 4.3.5
+numpy 2.2.3
+
