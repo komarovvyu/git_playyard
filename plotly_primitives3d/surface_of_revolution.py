@@ -1,3 +1,4 @@
+from click import style
 from typing_extensions import NamedTuple
 import numpy as np
 import plotly.graph_objects as go
@@ -32,13 +33,19 @@ class RL_Lists(NamedTuple):
 # Plotly Surface appearance
 class PlotlySurfaceStyle(NamedTuple):
     surface = dict(
-        color = "red",
-        transparency=0.5
+        color="red",
+        transparency=0.5,
     )
     border = dict(
-        width = 2,
+        width = 10,
         color = "blue",
-        transparency = 0.2
+        dash = "solid", # "dash", "dot"
+        #transparency = 0.2,
+        show_bases = dict(
+            start=True,
+            end=True
+        ),
+        style = [] #TODO lines for non-degenerated, markers for degenerated borders
     )
 
 class SurfaceOfRevolution():
@@ -58,10 +65,60 @@ class SurfaceOfRevolution():
         self.rotation = euler_rot
         self.profile = profile
         self.seg = seg_num
-        self.style = style
+
         if self.unit_circle == XYZ_SegLine():
             self.init_unit_circle()
-        self.calc_init_surf()
+        self.calc_init_surf() # initialization of self.init_surf.x&y&z
+
+        self.style = style
+        self.set_style()
+
+        self.calc_init_borders() #initialization of self.init_borders.x&y&z list
+
+    def surface_x_section(self, x_index:int):
+        section = XYZ_SegLine(
+            x=self.init_surf.x[x_index],
+            y=self.init_surf.y[x_index],
+            z=self.init_surf.z[x_index],
+        )
+        return section
+
+    def calc_init_borders(self):
+        self.init_borders = list()
+        if self.style.border['show_bases']['start']:
+            self.init_borders.append(self.surface_x_section(1))
+        if self.style.border['show_bases']['end']:
+            self.init_borders.append(self.surface_x_section(-1))
+
+    def add_to(self, fig):
+        #TODO rotate surface: self.rot_surf <- R( self.init_surf )
+        self.rot_surf = self.init_surf
+        fig.add_trace(go.Surface(
+            x=self.rot_surf.x, y=self.rot_surf.y, z=self.rot_surf.z,
+            surfacecolor=self.scolor, colorscale=self.scscale, opacity=self.sopacity,
+            showscale=False,
+        ))
+        #TODO rotate borders
+        self.rot_borders = self.init_borders
+        for i in range(0, len(self.rot_borders)):
+            border = self.rot_borders[i]
+            fig.add_trace(go.Scatter3d(
+                x=border.x, y=border.y, z=border.z,
+                mode='lines',
+                line=dict(
+                    color=self.style.border['color'],
+                    width=self.style.border['width'],
+                    dash=self.style.border['dash'],
+                    # opacity= ?
+                ),
+            ))
+
+
+    def set_style(self):
+        self.scolor = np.zeros_like(self.init_surf.x)
+        print(self.style.surface)
+        self.scscale = [self.style.surface['color'], self.style.surface['color']]
+        self.sopacity = 1 - self.style.surface['transparency']
 
     def init_unit_circle(self):
         #yz unit circle
@@ -92,8 +149,6 @@ if __name__ == "__main__":
 
     profile = RL_Lists(r=[0., 1., 0.], l=[0., 1., 1.])
     surf = SurfaceOfRevolution(profile=profile)
-    fig.add_trace(go.Surface(
-        x=surf.init_surf.x, y=surf.init_surf.y, z=surf.init_surf.z
-    ))
+    surf.add_to(fig)
 
     fig.show()
