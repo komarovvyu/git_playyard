@@ -39,13 +39,34 @@ def create_operate_matrix():
     y = (2.0, 2.1, 2.2, 2.3)
     z = (3.0, 3.1, 3.2, 3.3)
     print(f"vectors collection input: (x, y, z) = {(x, y, z)}")
-    vec_stack = np.array((x, y, z), dtype=np.float32).T # rows - x,y,z triplets
+    vec_stack = np.matrix((x, y, z), dtype=np.float32).T # rows - x,y,z triplets
     print(f"resulted stack of vectors: \n {vec_stack}", "\n",
           f"i=1 (second) vector: \n {vec_stack[1]}")
-    print(f"R - vector stack product : \n {np.matvec(Rz_p90d, vec_stack)}")
-    x_rot, y_rot, z_rot = tuple(vec_stack[:, 0]), tuple(vec_stack[:, 1]), tuple(vec_stack[:, 2])
+    rot_stack = np.matvec(Rz_p90d, vec_stack)
+    print(f"R - vector stack product : \n {rot_stack}")
+    x_rot, y_rot, z_rot = tuple(rot_stack[:, 0].flat), tuple(rot_stack[:, 1].flat), tuple(rot_stack[:, 2].flat)
     print(f"rotated vectors: (x, y, z) = \n",
           f"({x_rot} ,\n {y_rot} ,\n {z_rot})")
+
+    #Ulybin's way
+    vec_stack = np.array((x, y, z), dtype=np.float32).T.reshape(-1, 3, 1)
+    print(f"resulted stack of vectors: \n {vec_stack}", "\n",
+          f"i=1 (second) vector: \n {vec_stack[1,:,0]}")
+    rot_stack = np.matmul(Rz_p90d, vec_stack)
+    print(f"R - vector stack product : \n {rot_stack}")
+    x_rot = tuple(rot_stack[:, 0].ravel())
+    y_rot = tuple(rot_stack[:, 1].ravel())
+    z_rot = tuple(rot_stack[:, 2].ravel())
+    print(f"rotated vectors: (x, y, z) = \n",
+          f"({x_rot} ,\n {y_rot} ,\n {z_rot})")
+#rotated vectors: (x, y, z) =
+# ((matrix([[-2. , -2.1, -2.2, -2.3]], dtype=float32),) ,
+# (matrix([[1. , 1.1, 1.2, 1.3]], dtype=float32),) ,
+# (matrix([[3. , 3.1, 3.2, 3.3]], dtype=float32),))  #TODO how to ger rid of matrix([[...]]) ?
+
+
+
+
 
 
 if __name__ == "__main__":
