@@ -77,31 +77,30 @@ class SurfaceOfRevolution():
 
         if self.unit_circle == XYZ_SegLine():
             self.init_unit_circle()
-        self.init_xyz_stack = self.calc_init_surf() # initialization of (v*u, 3) 2D array of the non-rotated surface
+        self.init_surf_xyz_stack = self.calc_init_surf() # initialization of (v*u, 3) 2D array of the non-rotated surface
 
         self.style = self.set_style(style)
 
-        self.calc_init_borders() #initialization of self.init_borders.x&y&z list
+        self.init_borders_xyz_stack = self.calc_init_borders() #initialization of visible borders as list of (xyz)-stacks
 
-    def surface_x_section(self, x_index:int):
-        xyz_uv_stack = self.init_xyz_stack.reshape((self.v_size, self.u_size, 3))
-        section = XYZ_SegLine(
-            x=tuple(xyz_uv_stack[x_index, :, 0].ravel()),
-            y=tuple(xyz_uv_stack[x_index, :, 1].ravel()),
-            z=tuple(xyz_uv_stack[x_index, :, 2].ravel()),
-        )
+    def surface_x_section(self, v_index:int):
+        xyz_uv_stack = self.init_surf_xyz_stack.reshape((self.v_size, self.u_size, 3)) #TODO rearrange v and u indices
+        section = xyz_uv_stack[v_index, :, :].reshape((-1, 3))
         return section
 
     def calc_init_borders(self):
-        self.init_borders = list()
+        # return list of stacked xyz triplets as list(np.array[v_size, 3])
+        result_borders = list()
         if self.style.border['show_bases']['start']:
-            self.init_borders.append(self.surface_x_section(0))
+            result_borders.append(self.surface_x_section(v_index=0))
         if self.style.border['show_bases']['end']:
-            self.init_borders.append(self.surface_x_section(-1))
+            result_borders.append(self.surface_x_section(v_index=-1))
+
+        return result_borders
 
     def add_to(self, fig):
         #TODO rotate surface: self.rot_surf <- R( self.init_surf )
-        rot_xyz_stack = self.init_xyz_stack
+        rot_xyz_stack = self.init_surf_xyz_stack
         x = rot_xyz_stack[:,0].reshape((self.v_size, self.u_size))
         y = rot_xyz_stack[:,1].reshape((self.v_size, self.u_size))
         z = rot_xyz_stack[:,2].reshape((self.v_size, self.u_size))
@@ -113,11 +112,13 @@ class SurfaceOfRevolution():
             #showscale=False,
         ))
         #TODO rotate borders
-        self.rot_borders = self.init_borders
-        for i in range(0, len(self.rot_borders)):
-            border = self.rot_borders[i]
+        self.rot_borders = self.init_borders_xyz_stack
+        for border in self.rot_borders:
+            x = border[:, 0]
+            y = border[:, 1]
+            z = border[:, 2]
             fig.add_trace(go.Scatter3d(
-                x=border.x, y=border.y, z=border.z,
+                x=x, y=y, z=z,
                 mode='lines',
                 line=dict(
                     color=self.style.border['color'],
@@ -136,6 +137,7 @@ class SurfaceOfRevolution():
 
     def init_unit_circle(self):
         #TODO check actuality of the current unit circle or make it as entity property
+        #TODO change data type to np.array xyz-stack for the similarity with borders and surface representation after the appropriate classes realization
         #yz unit circle
         _ksi = np.linspace(0., 2*np.pi, self.u_size)
         self.unit_circle = XYZ_SegLine(
@@ -153,7 +155,7 @@ class SurfaceOfRevolution():
         xyz_uv = np.array((self.unit_circle.x + self.origin.x,
                            self.unit_circle.y + self.origin.y,
                            self.unit_circle.z + self.origin.z),
-                          dtype=np.float32).T.reshape(1, u, 3).repeat(v, axis=0)
+                           dtype=np.float32).T.reshape(1, u, 3).repeat(v, axis=0)
         px = np.array(self.profile.l).cumsum()
         p0 = np.zeros_like(px)
         v_shift = np.array((px, p0, p0), dtype=np.float32).T.reshape(v, 1, 3)
