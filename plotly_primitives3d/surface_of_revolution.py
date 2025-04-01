@@ -81,20 +81,21 @@ class SurfaceOfRevolution():
 
         self.style = self.set_style(style)
 
-        #self.calc_init_borders() #initialization of self.init_borders.x&y&z list
+        self.calc_init_borders() #initialization of self.init_borders.x&y&z list
 
     def surface_x_section(self, x_index:int):
+        xyz_uv_stack = self.init_xyz_stack.reshape((self.v_size, self.u_size, 3))
         section = XYZ_SegLine(
-            x=self.init_surf.x[x_index],
-            y=self.init_surf.y[x_index],
-            z=self.init_surf.z[x_index],
+            x=tuple(xyz_uv_stack[x_index, :, 0].ravel()),
+            y=tuple(xyz_uv_stack[x_index, :, 1].ravel()),
+            z=tuple(xyz_uv_stack[x_index, :, 2].ravel()),
         )
         return section
 
     def calc_init_borders(self):
         self.init_borders = list()
         if self.style.border['show_bases']['start']:
-            self.init_borders.append(self.surface_x_section(1))
+            self.init_borders.append(self.surface_x_section(0))
         if self.style.border['show_bases']['end']:
             self.init_borders.append(self.surface_x_section(-1))
 
@@ -106,25 +107,25 @@ class SurfaceOfRevolution():
         z = rot_xyz_stack[:,2].reshape((self.v_size, self.u_size))
         fig.add_trace(go.Surface(
             x=x, y=y, z=z,
-            surfacecolor=self.style.['uv_colors'],
+            surfacecolor=self.style.surface['uv_colors'],
             colorscale=self.style.surface['colorscale'],
             opacity=self.style.surface['opacity'],
             #showscale=False,
         ))
         #TODO rotate borders
-        #self.rot_borders = self.init_borders
-        #for i in range(0, len(self.rot_borders)):
-        #    border = self.rot_borders[i]
-        #    fig.add_trace(go.Scatter3d(
-        #        x=border.x, y=border.y, z=border.z,
-        #        mode='lines',
-        #        line=dict(
-        #            color=self.style.border['color'],
-        #            width=self.style.border['width'],
-        #            dash=self.style.border['dash'],
-        #            # opacity= ?
-        #        ),
-        #    ))
+        self.rot_borders = self.init_borders
+        for i in range(0, len(self.rot_borders)):
+            border = self.rot_borders[i]
+            fig.add_trace(go.Scatter3d(
+                x=border.x, y=border.y, z=border.z,
+                mode='lines',
+                line=dict(
+                    color=self.style.border['color'],
+                    width=self.style.border['width'],
+                    dash=self.style.border['dash'],
+                    # opacity= ?
+                ),
+            ))
 
     def set_style(self, style):
         _style = copy.deepcopy(style)
@@ -146,12 +147,6 @@ class SurfaceOfRevolution():
     def calc_init_surf(self):
         # return xyz_stack - (u*v, 3)-shaped 2D array
         u, v = self.u_size, self.v_size
-        #print(f"generate {u}-angular {v}-segment prism with profile:",
-        #      f"{self.profile}",
-        #      f"and unit 'parallel' circle:",
-        #      f"{self.unit_circle}",
-        #      sep="\n")
-
         # fast index: xyz (point coordinate index),
         # mid. index: u (intra-segment point index),
         # slow index: v (segment index)
@@ -170,7 +165,7 @@ class SurfaceOfRevolution():
 if __name__ == "__main__":
     fig = go.Figure()
 
-    profile = RL_Lists(r=[0., 0.8, 1., 0.2, 0.], l=[0., 0.2, 1., 1.8, 2.])
+    profile = RL_Lists(r=[0.1, 0.8, 1., 0.2, 0.1], l=[0., 0.2, 1., 1.8, 2.])
     surf = SurfaceOfRevolution(profile=profile)
     surf.add_to(fig)
 
