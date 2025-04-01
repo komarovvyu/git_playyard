@@ -3,6 +3,10 @@ from typing_extensions import NamedTuple
 import numpy as np
 import plotly.graph_objects as go
 
+#TODO remove NamedTupple inheritance {GD} -- it is redundant
+#TODO make class for 3D vectors stack, particular case -- 1 point {GD}
+#TODO ? flat stack > UV stack > UV surface > Revolution surface > ... {GD}
+
 type FloatList = list[float]
 # 3D vectors, points, etc.
 class XYZ_Point(NamedTuple):
@@ -102,7 +106,7 @@ class SurfaceOfRevolution():
         z = rot_xyz_stack[:,2].reshape((self.v_size, self.u_size))
         fig.add_trace(go.Surface(
             x=x, y=y, z=z,
-            surfacecolor=self.style.surface['uv_colors'],
+            surfacecolor=self.style.['uv_colors'],
             colorscale=self.style.surface['colorscale'],
             opacity=self.style.surface['opacity'],
             #showscale=False,
@@ -130,6 +134,7 @@ class SurfaceOfRevolution():
         return _style
 
     def init_unit_circle(self):
+        #TODO check actuality of the current unit circle or make it as entity property
         #yz unit circle
         _ksi = np.linspace(0., 2*np.pi, self.u_size)
         self.unit_circle = XYZ_SegLine(
