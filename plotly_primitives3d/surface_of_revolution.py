@@ -25,11 +25,23 @@ class XYZ_Surface(NamedTuple):
     y: list[FloatList] = []
     z: list[FloatList] = []
 # 3D rotation using Euler angles: r' = Rz+omega Rx+chi Rz+phi r
-class Euler_Angles(NamedTuple):
-    omega: float = 0.
-    phi: float = 0.
-    chi: float = 0.
-    unit: str = 'deg'
+# create a class of rotations! :(
+Euler_Angles_EXAMPLE = dict(
+    omega = 60.,
+    phi = 60.,
+    chi = 60.,
+    unit = 'deg', # or 'rad'
+)
+def get_rad(euler_angles, angle_name='omega'):
+    deg_to_rad_factor = np.pi / 180.
+    if (angle_name not in euler_angles.keys()) or (angle_name=='unit'):
+        raise Exception(f'Wrong angle name {angle_name} for {euler_angles}.')
+    if euler_angles['unit'] == 'rad':
+        return euler_angles[angle_name]
+    elif euler_angles['unit'] == 'deg':
+        return euler_angles[angle_name] * deg_to_rad_factor
+    else:
+        raise Exception(f'Unsupported units {euler_angles.unit} in {euler_angles}.')
 # (R) Radius - (L) section Length sequences for surface of revolution description
 class RL_Lists(NamedTuple):
     r: FloatList = []
@@ -65,11 +77,10 @@ class SurfaceOfRevolution():
       no-indented surfaces).
     """
     #TODO #001 separate a basic UVSurface class
-    def __init__(self, origin_point:XYZ_Point=XYZ_Point(), euler_rot:Euler_Angles=Euler_Angles(),
+    def __init__(self, origin_point:XYZ_Point=XYZ_Point(),
                  profile:RL_Lists=RL_Lists(), seg_num=50,
                  style:PlotlySurfaceStyle = PlotlySurfaceStyle()):# -> Plotly.Surface ???
         self.origin = origin_point
-        self.rotation = euler_rot
         self.profile = profile
         #001 v_, u_sizes and some operations with UV-coordinate array are too abstract for this Class!
         self.v_size = len(profile.l) # v - slow coordinate in uv-surface representation, accords to latitudial (inter-segmental) sections
@@ -78,10 +89,31 @@ class SurfaceOfRevolution():
         if self.unit_circle == XYZ_SegLine():
             self.init_unit_circle()
         self.init_surf_xyz_stack = self.calc_init_surf() # initialization of (v*u, 3) 2D array of the non-rotated surface
-
         self.style = self.set_style(style)
-
         self.init_borders_xyz_stack = self.calc_init_borders() #initialization of visible borders as list of (xyz)-stacks
+
+        #self.set_rotation()
+
+    def set_rotation(self, euler_angles=Euler_Angles_EXAMPLE):
+        # calculate R -- 3D rotation matrix = R(z, omega)*R(x, chi)*R(z, phi) Euler angle rotation
+        #  applicable for R * r-column matrix multiplication
+        om = get_rad(euler_angles, 'omega')
+        co, so = np.cos(om), np.sin(om)
+        R_om = np.matrix(([co, -so, 0.],
+                          [so, co, 0.],
+                          [0., 0., 1.]))
+        chi = get_rad(euler_angles, 'chi')
+        cc, sc = np.cos(chi), np.sin(chi)
+        R_chi = np.matrix(([1., 0., 0.],
+                           [0., cc, -sc],
+                           [0., sc, cc]))
+        phi = get_rad(euler_angles, 'phi')
+        cp, sp = np.cos(phi), np.sin(phi)
+        R_phi = np.matrix(([cp, -sp, 0.],
+                           [sp, cp, 0.],
+                           [0., 0., 1.]))
+        print(R_om, R_chi, R_phi, '===', R_om * R_chi * R_phi, sep='\n*\n')
+        pass  ### !!! continue here!!!
 
     def surface_x_section(self, v_index:int):
         xyz_uv_stack = self.init_surf_xyz_stack.reshape((self.v_size, self.u_size, 3)) #TODO rearrange v and u indices
@@ -98,8 +130,9 @@ class SurfaceOfRevolution():
 
         return result_borders
 
-    def add_to(self, fig):
+    def add_to(self, fig, euler_angles=Euler_Angles_EXAMPLE):
         #TODO rotate surface: self.rot_surf <- R( self.init_surf )
+        self.set_rotation(euler_angles)
         rot_xyz_stack = self.init_surf_xyz_stack
         x = rot_xyz_stack[:,0].reshape((self.v_size, self.u_size))
         y = rot_xyz_stack[:,1].reshape((self.v_size, self.u_size))
@@ -171,4 +204,4 @@ if __name__ == "__main__":
     surf = SurfaceOfRevolution(profile=profile)
     surf.add_to(fig)
 
-    fig.show()
+    #fig.show()
