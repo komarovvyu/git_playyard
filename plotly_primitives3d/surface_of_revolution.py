@@ -1,4 +1,4 @@
-from click import style
+import copy
 from typing_extensions import NamedTuple
 import numpy as np
 import plotly.graph_objects as go
@@ -33,8 +33,10 @@ class RL_Lists(NamedTuple):
 # Plotly Surface appearance
 class PlotlySurfaceStyle(NamedTuple):
     surface = dict(
-        color="red",
-        transparency=0.5,
+        color = "red",
+        opacity = 0.5,
+        uv_colors = np.array([]),
+        colorscale = [0., 0.],
     )
     border = dict(
         width = 10,
@@ -73,8 +75,7 @@ class SurfaceOfRevolution():
             self.init_unit_circle()
         self.init_xyz_stack = self.calc_init_surf() # initialization of (v*u, 3) 2D array of the non-rotated surface
 
-        self.style = style
-        self.set_style()
+        self.style = self.set_style(style)
 
         #self.calc_init_borders() #initialization of self.init_borders.x&y&z list
 
@@ -101,7 +102,9 @@ class SurfaceOfRevolution():
         z = rot_xyz_stack[:,2].reshape((self.v_size, self.u_size))
         fig.add_trace(go.Surface(
             x=x, y=y, z=z,
-            #surfacecolor=self.scolor, colorscale=self.scscale, opacity=self.sopacity,
+            surfacecolor=self.style.surface['uv_colors'],
+            colorscale=self.style.surface['colorscale'],
+            opacity=self.style.surface['opacity'],
             #showscale=False,
         ))
         #TODO rotate borders
@@ -119,11 +122,12 @@ class SurfaceOfRevolution():
         #        ),
         #    ))
 
-    def set_style(self):
-        self.scolor = np.zeros_like(self.u_size * self.v_size)
-        print(self.style.surface)
-        self.scscale = [self.style.surface['color'], self.style.surface['color']]
-        self.sopacity = 1 - self.style.surface['transparency']
+    def set_style(self, style):
+        _style = copy.deepcopy(style)
+        _style.surface['uv_colors'] = np.zeros(self.u_size * self.v_size)
+        _style.surface['colorscale'] = [style.surface['color'], style.surface['color']]
+        #TODO get rid of ['<field names>'], adopt to fig.add_trace(go.Surface(...)) usage
+        return _style
 
     def init_unit_circle(self):
         #yz unit circle
