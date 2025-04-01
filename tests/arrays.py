@@ -64,10 +64,44 @@ def create_operate_matrix():
 # (matrix([[1. , 1.1, 1.2, 1.3]], dtype=float32),) ,
 # (matrix([[3. , 3.1, 3.2, 3.3]], dtype=float32),))  #TODO how to ger rid of matrix([[...]]) ?
 
+def vec3d_stack_to_uv_conversion():
+    u_size = 5
+    v_size = 4
+    xyz_stack = np.random.rand(u_size * v_size, 3)
+    print("stack:\n", xyz_stack)
+    xyz_uv = xyz_stack.reshape((-1, u_size, 3))
+    print("uv:\n", xyz_uv)
+    #xyz_stack = xyz_uv.reshape((-1, 3))
+    #print("new stack:\n", xyz_stack)
 
+
+    shift_uv = np.array(
+        [[[0.5, 0.1, 0.3]],
+         [[0.2,0.01, 1.0]],
+         [[0.8, 0.9, 0.9]],
+         [[0.3, 0.5, 0.0]]],
+    )
+    print(f"shift_uv shape: {shift_uv.shape}")
+    shifted_uv = xyz_uv + shift_uv
+    print("shifted uv:\n", shifted_uv)
+    #print("x from uv:\n", xyz_uv[:,:,0])#.reshape((-1, u_size)))
+    #print("y from uv:\n", xyz_uv[:,:,0])#.reshape((-1, u_size)))
+    #print("z from uv:\n", xyz_uv[:,:,0])#.reshape((-1, u_size)))
+
+def matrix_3d_vector_stack_product():
+    R = np.matrix("0, -1, 0; 1, 0, 0; 0, 0, 1", dtype=np.float32)
+    print(R)
 
 
 
 
 if __name__ == "__main__":
-    create_operate_matrix()
+    x = [1,2,3]
+    y = [4,5,6]
+    z = [7,8,9]
+    a = np.array((x, y, y), dtype=np.float32).T.reshape(3,1,3)
+    print(a, a.shape, sep="\n")
+    b = a.repeat(2, axis=0)
+    print(b)
+
+    #p =
